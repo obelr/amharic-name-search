@@ -17,6 +17,8 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
+    "test:romanization": "node test-romanization.js",
+    "test:interactive": "node test-interactive.js",
     "prepublishOnly": "npm run build && npm test",
     "clean": "rm -rf dist"
   },

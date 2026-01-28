@@ -4,7 +4,6 @@ A lightweight TypeScript library for transliterating and matching Ethiopian name
 
 > **Note:** This is a transliteration library, not a search engine. Use it with databases (MongoDB, PostgreSQL), search engines (Elasticsearch), or for client-side filtering.
 > 
-> 📖 **New to this package?** Read [What is This?](./WHAT_IS_THIS.md) to understand what it does and how it works.
 
 ## Quick Start
 
@@ -18,6 +17,11 @@ import { matchesName } from 'amharic-name-search';
 // Search works in both directions!
 matchesName('አማኑኤል', 'amanuel'); // true ✅
 matchesName('Amanuel', 'አማኑኤል'); // true ✅
+
+// NEW: Romanization-based partial matching
+matchesName('አማኑኤል', 'Ama');      // true ✅
+matchesName('ተስፋዬ', 'Tes');       // true ✅
+matchesName('አማኑኤል ፀጋዬ', 'Ama Tseg'); // true ✅
 ```
 
 **That's it!** Now you can search for names regardless of whether they're typed in English or Amharic.
@@ -46,6 +50,12 @@ matchesName('አማኑኤል ፀጋዬ', 'amanuel'); // true
 // Match Amharic query with English name
 matchesName('Amanuel', 'አማኑኤል'); // true
 matchesName('Amanuel Tsegaye', 'አማኑኤል'); // true
+
+// Romanization-aware matching (handles \"weird\" spellings)
+matchesName('ተስፋዬ', 'tesfaye');  // true  (standard)
+matchesName('ተስፋዬ', 'tasfaye');  // true  (non-standard)
+matchesName('ሰላም', 'Sel');      // true  (prefix)
+matchesName('ዮሐንስ', 'Yoh');     // true  (prefix)
 ```
 
 ### Search Query Expansion
@@ -194,6 +204,15 @@ The library includes mappings for common Ethiopian names including:
 - And many more...
 
 See `src/name-mappings.ts` for the complete list.
+
+In addition to the built-in dictionary, the matcher uses:
+- A **romanization layer** based on the official Amharic/Ge'ez Fidel table, simplified to ASCII
+- **Fuzzy and prefix matching** on the Latin side
+
+This means it can successfully match many real-world spellings that do **not** follow strict transliteration rules, e.g.:
+- `tasfaye`, `tesfaye` → `ተስፋዬ`
+- `Ama`, `Aman`, `Amanuel` → `አማኑኤል`
+- `Ama Tseg` → `አማኑኤል ፀጋዬ`
 
 ## TypeScript Support
 

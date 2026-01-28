@@ -49,3 +49,9 @@ export {
   MAX_INPUT_LENGTH,
   MAX_QUERY_LENGTH,
 } from './validation';
+
+// Export romanization utilities
+export {
+  romanizeAmharicToAscii,
+  containsAmharic,
+} from './romanization';

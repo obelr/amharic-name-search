@@ -8,6 +8,7 @@ import type { TransliterationOptions, MatchOptions } from './types';
 import { validateAndSanitizeInput, validateSearchQuery } from './validation';
 import { NameTrie } from './trie';
 import { levenshteinDistance, isPhoneticallySimilar } from './utils';
+import { romanizeAmharicToAscii, containsAmharic, matchesTransliterationVariant } from './romanization';
 
 // Initialize Trie for fast lookups (lazy loaded)
 let nameTrie: NameTrie | null = null;
@@ -174,6 +175,15 @@ export function matchesName(
     return false;
   }
 
+  // Precompute romanized forms when Amharic is involved.
+  // This uses the official romanization table (simplified to ASCII)
+  // so that queries like "Ama" can still match "አማኑኤል".
+  const hasAmharicInName = containsAmharic(nameTrimmed);
+  const hasAmharicInQuery = containsAmharic(queryTrimmed);
+
+  const romanizedName = hasAmharicInName ? romanizeAmharicToAscii(nameTrimmed) : '';
+  const romanizedQuery = hasAmharicInQuery ? romanizeAmharicToAscii(queryTrimmed) : '';
+
   // Direct match
   if (wholeWord) {
     if (nameTrimmed === queryTrimmed) {
@@ -193,6 +203,17 @@ export function matchesName(
       }
     } else {
       if (nameTrimmed.includes(queryTrimmed) || queryTrimmed.includes(nameTrimmed)) {
+        return true;
+      }
+    }
+    
+    // Handle transliteration variants for English-to-English matching
+    // This handles cases like "tas" vs "tes" where people write names inconsistently
+    // Check if query is a prefix/substring with transliteration variants
+    // Only do this if case sensitivity allows it (or if we're case-insensitive)
+    if (!caseSensitive && queryTrimmed.length >= 2 && nameTrimmed.length >= queryTrimmed.length) {
+      const namePrefix = nameTrimmed.substring(0, queryTrimmed.length);
+      if (matchesTransliterationVariant(namePrefix, queryTrimmed, 1.5)) {
         return true;
       }
     }
@@ -221,6 +242,148 @@ export function matchesName(
   if (phonetic) {
     if (isPhoneticallySimilar(nameTrimmed, queryTrimmed)) {
       return true;
+    }
+  }
+
+  /**
+   * Romanization-based matching
+   *
+   * This path is critical for partial English queries like "Ama"
+   * matching Amharic names like "አማኑኤል". It relies on the
+   * Amharic → Latin mapping derived from the official table.
+   */
+  // Case 1: name is Amharic, query is English (or general Latin text)
+  if (hasAmharicInName && !hasAmharicInQuery) {
+    if (romanizedName) {
+      // Simple direct / substring / prefix checks on romanized form
+      if (romanizedName === queryTrimmed) {
+        return true;
+      }
+      if (
+        romanizedName.includes(queryTrimmed) ||
+        queryTrimmed.includes(romanizedName)
+      ) {
+        return true;
+      }
+
+      // Handle multi-word queries: "Ama Tseg" should match "አማኑኤል ፀጋዬ"
+      if (queryTrimmed.includes(' ')) {
+        const queryWords = queryTrimmed.split(/\s+/).filter(w => w.length > 0);
+        const nameWords = romanizedName.split(/\s+/).filter(w => w.length > 0);
+        
+        // Check if all query words match some part of the name
+        let allWordsMatch = true;
+        for (const queryWord of queryWords) {
+          let wordMatches = false;
+          for (const nameWord of nameWords) {
+            // Direct substring/prefix match
+            if (nameWord.includes(queryWord) || queryWord.includes(nameWord) || 
+                nameWord.startsWith(queryWord) || queryWord.startsWith(nameWord)) {
+              wordMatches = true;
+              break;
+            }
+            // Handle transliteration variants (e.g., "tseg" vs "tsag", "tas" vs "tes")
+            // This handles "weird" spellings where people don't follow strict romanization
+            if (queryWord.length >= 2 && nameWord.length >= queryWord.length) {
+              const namePrefix = nameWord.substring(0, queryWord.length);
+              
+              // Use transliteration-aware matching for variants
+              if (matchesTransliterationVariant(namePrefix, queryWord, 2.0)) {
+                wordMatches = true;
+                break;
+              }
+              
+              // Also check with standard Levenshtein as fallback
+              const distance = levenshteinDistance(namePrefix.toLowerCase(), queryWord.toLowerCase());
+              if (distance <= 2 && namePrefix.length >= 2) {
+                wordMatches = true;
+                break;
+              }
+            }
+          }
+          if (!wordMatches) {
+            allWordsMatch = false;
+            break;
+          }
+        }
+        if (allWordsMatch) {
+          return true;
+        }
+      }
+
+      if (fuzzy) {
+        const distance = levenshteinDistance(romanizedName, queryTrimmed);
+        const maxLen = Math.max(romanizedName.length, queryTrimmed.length);
+        const minLen = Math.min(romanizedName.length, queryTrimmed.length);
+        if (maxLen > 0) {
+          const normalizedDistance = distance / maxLen;
+          const lengthRatio = minLen / maxLen;
+          if (
+            distance <= maxDistance &&
+            normalizedDistance <= 0.35 &&
+            lengthRatio >= 0.5
+          ) {
+            return true;
+          }
+        }
+      }
+    }
+  }
+
+  // Case 2: query is Amharic, name is English
+  if (!hasAmharicInName && hasAmharicInQuery) {
+    if (romanizedQuery) {
+      // Compare romanized Amharic query against English name
+      if (nameTrimmed === romanizedQuery) {
+        return true;
+      }
+      // Check if romanized query is a prefix/substring of the name (for partial matches)
+      if (nameTrimmed.includes(romanizedQuery)) {
+        return true;
+      }
+      // Also check if name starts with romanized query (for better prefix matching)
+      if (nameTrimmed.startsWith(romanizedQuery)) {
+        return true;
+      }
+      // Handle transliteration variants: check if name starts with a variant
+      // e.g., "tas" vs "tes" - check if name starts with similar prefix
+      // This handles "weird" spellings where people don't follow strict romanization
+      if (romanizedQuery.length >= 2 && nameTrimmed.length >= romanizedQuery.length) {
+        const namePrefix = nameTrimmed.substring(0, romanizedQuery.length);
+        
+        // Use transliteration-aware matching for variants like ta/te, sa/se
+        if (matchesTransliterationVariant(namePrefix, romanizedQuery, 1.5)) {
+          return true;
+        }
+        
+        // Also check with standard Levenshtein as fallback
+        const distance = levenshteinDistance(namePrefix.toLowerCase(), romanizedQuery.toLowerCase());
+        if (distance <= 1) {
+          return true;
+        }
+      }
+      // Reverse: check if romanized query starts with name (for very short names)
+      if (romanizedQuery.includes(nameTrimmed)) {
+        return true;
+      }
+
+      if (fuzzy) {
+        const distance = levenshteinDistance(nameTrimmed, romanizedQuery);
+        const maxLen = Math.max(nameTrimmed.length, romanizedQuery.length);
+        const minLen = Math.min(nameTrimmed.length, romanizedQuery.length);
+        if (maxLen > 0) {
+          const normalizedDistance = distance / maxLen;
+          const lengthRatio = minLen / maxLen;
+          // More lenient for reverse matching
+          if (
+            distance <= maxDistance &&
+            normalizedDistance <= 0.4 &&
+            lengthRatio >= 0.4
+          ) {
+            return true;
+          }
+        }
+      }
     }
   }
 

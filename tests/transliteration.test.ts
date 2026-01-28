@@ -110,6 +110,13 @@ describe('matchesName', () => {
       expect(matchesName('አማኑኤል ፀጋዬ', 'amanuel')).toBe(true);
     });
 
+    it('should match short English prefixes with Amharic names using romanization', () => {
+      // "Ama" should still find "አማኑኤል"
+      expect(matchesName('አማኑኤል', 'Ama')).toBe(true);
+      expect(matchesName('አማኑኤል ፀጋዬ', 'Ama')).toBe(true);
+      expect(matchesName('አማኑኤል', 'ama')).toBe(true);
+    });
+
     it('should match Amharic query with English name', () => {
       expect(matchesName('Amanuel', 'አማኑኤል')).toBe(true);
       expect(matchesName('Amanuel Tsegaye', 'አማኑኤል')).toBe(true);
