@@ -1,6 +1,6 @@
 {
   "name": "amharic-name-search",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Search and match Ethiopian names in both English and Amharic scripts. Perfect for building bilingual search functionality.",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
