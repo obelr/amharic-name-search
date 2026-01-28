@@ -22,12 +22,6 @@ matchesName('Amanuel', 'አማኑኤል'); // true ✅
 
 **That's it!** Now you can search for names regardless of whether they're typed in English or Amharic.
 
-> 📖 **Documentation:**
-> - [How to Use](./HOW_TO_USE.md) - Simple guide for developers
-> - [Quick Start](./QUICK_START.md) - Get started in 3 steps
-> - [Usage Guide](./USAGE_GUIDE.md) - 11+ detailed examples
-> - [Elasticsearch Guide](./ELASTICSEARCH_GUIDE.md) - Full Elasticsearch integration
-> - [Developer Guide](./DEVELOPER_GUIDE.md) - Complete reference
 
 ## Usage
 
