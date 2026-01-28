@@ -1,0 +1,12 @@
+node_modules/
+tests/
+src/
+*.test.ts
+*.spec.ts
+tsconfig.json
+jest.config.js
+.git/
+.gitignore
+coverage/
+*.log
+.DS_Store
