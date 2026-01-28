@@ -1,6 +1,10 @@
 # Amharic Name Search
 
-Search and match Ethiopian names in both English and Amharic scripts. Perfect for building bilingual search functionality that works seamlessly across both languages.
+A lightweight TypeScript library for transliterating and matching Ethiopian names in both English and Amharic scripts. Perfect for building bilingual search functionality.
+
+> **Note:** This is a transliteration library, not a search engine. Use it with databases (MongoDB, PostgreSQL), search engines (Elasticsearch), or for client-side filtering.
+> 
+> 📖 **New to this package?** Read [What is This?](./WHAT_IS_THIS.md) to understand what it does and how it works.
 
 ## Quick Start
 
@@ -21,7 +25,8 @@ matchesName('Amanuel', 'አማኑኤል'); // true ✅
 > 📖 **Documentation:**
 > - [How to Use](./HOW_TO_USE.md) - Simple guide for developers
 > - [Quick Start](./QUICK_START.md) - Get started in 3 steps
-> - [Usage Guide](./USAGE_GUIDE.md) - 10+ detailed examples
+> - [Usage Guide](./USAGE_GUIDE.md) - 11+ detailed examples
+> - [Elasticsearch Guide](./ELASTICSEARCH_GUIDE.md) - Full Elasticsearch integration
 > - [Developer Guide](./DEVELOPER_GUIDE.md) - Complete reference
 
 ## Usage

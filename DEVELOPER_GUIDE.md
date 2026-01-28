@@ -309,6 +309,41 @@ async function searchClients(query: string) {
 }
 ```
 
+### Elasticsearch
+
+```typescript
+import { Client } from '@elastic/elasticsearch';
+import { expandSearchQuery } from 'amharic-name-search';
+
+const client = new Client({ node: 'http://localhost:9200' });
+
+async function searchClients(query: string) {
+  const searchTerms = expandSearchQuery(query);
+  
+  const result = await client.search({
+    index: 'clients',
+    body: {
+      query: {
+        bool: {
+          should: searchTerms.map(term => ({
+            match: {
+              name: {
+                query: term,
+                boost: term === query ? 2.0 : 1.0
+              }
+            }
+          }))
+        }
+      }
+    }
+  });
+  
+  return result.body.hits.hits.map(hit => hit._source);
+}
+```
+
+> 📖 **For advanced Elasticsearch features** (analyzers, synonyms, performance optimization), see the [Elasticsearch Guide](./ELASTICSEARCH_GUIDE.md).
+
 ---
 
 ## API Reference

@@ -14,6 +14,12 @@ export interface TransliterationOptions {
    * @default true
    */
   includePhoneticMatching?: boolean;
+  
+  /**
+   * Enable caching for better performance
+   * @default true
+   */
+  enableCache?: boolean;
 }
 
 export interface MatchOptions {
@@ -28,4 +34,28 @@ export interface MatchOptions {
    * @default false
    */
   wholeWord?: boolean;
+  
+  /**
+   * Enable fuzzy matching (typo tolerance)
+   * @default false
+   */
+  fuzzy?: boolean;
+  
+  /**
+   * Maximum Levenshtein distance for fuzzy matching
+   * @default 2
+   */
+  maxDistance?: number;
+  
+  /**
+   * Enable phonetic matching
+   * @default false
+   */
+  phonetic?: boolean;
+  
+  /**
+   * Minimum similarity ratio for phonetic matching (0-1)
+   * @default 0.7
+   */
+  minSimilarity?: number;
 }

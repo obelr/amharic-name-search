@@ -227,7 +227,80 @@ const clients = await searchClients('amanuel');
 
 ---
 
-### 4. Database Query - PostgreSQL/SQL
+### 4. Database Query - Elasticsearch
+
+**Problem:** Need powerful full-text search with transliteration support and relevance scoring.
+
+**Solution:**
+
+```typescript
+import { Client } from '@elastic/elasticsearch';
+import { expandSearchQuery, transliterateToAmharic } from 'amharic-name-search';
+
+const client = new Client({ node: 'http://localhost:9200' });
+
+async function searchClients(query: string) {
+  const searchTerms = expandSearchQuery(query);
+  const amharicVariants = transliterateToAmharic(query);
+  
+  const result = await client.search({
+    index: 'clients',
+    body: {
+      query: {
+        bool: {
+          should: [
+            // Exact match - highest boost
+            {
+              match: {
+                name: {
+                  query: query,
+                  boost: 3.0
+                }
+              }
+            },
+            // Amharic variants - high boost
+            ...amharicVariants.map(variant => ({
+              match: {
+                name: {
+                  query: variant,
+                  boost: 2.5
+                }
+              }
+            })),
+            // Other expanded terms
+            ...searchTerms
+              .filter(term => term !== query && !amharicVariants.includes(term))
+              .map(term => ({
+                match: {
+                  name: {
+                    query: term,
+                    boost: 1.0
+                  }
+                }
+              }))
+          ],
+          minimum_should_match: 1
+        }
+      }
+    }
+  });
+  
+  return result.body.hits.hits.map(hit => ({
+    ...hit._source,
+    score: hit._score
+  }));
+}
+
+// Usage
+const clients = await searchClients('amanuel');
+// Returns results with relevance scores, finds "Amanuel", "አማኑኤል", etc.
+```
+
+> 📖 **For advanced Elasticsearch integration**, see the [Elasticsearch Guide](./ELASTICSEARCH_GUIDE.md) with index configuration, analyzers, and performance optimization.
+
+---
+
+### 5. Database Query - PostgreSQL/SQL
 
 **Problem:** Need to search SQL database with transliteration.
 
@@ -265,7 +338,7 @@ const clients = await searchClients('amanuel');
 
 ---
 
-### 5. Vue.js Component
+### 6. Vue.js Component
 
 **Problem:** Need transliteration in a Vue.js application.
 
@@ -318,7 +391,7 @@ const filteredClients = computed(() => {
 
 ---
 
-### 6. Form Validation - Check if Name Exists
+### 7. Form Validation - Check if Name Exists
 
 **Problem:** Validate if a client name already exists, regardless of script.
 
@@ -354,7 +427,7 @@ try {
 
 ---
 
-### 7. Advanced: Custom Options
+### 8. Advanced: Custom Options
 
 **Problem:** Need case-sensitive or whole-word matching.
 
@@ -384,7 +457,7 @@ matchesName('AmanuelTsegaye', 'Amanuel', wholeWordOptions); // false (not whole 
 
 ---
 
-### 8. Advanced: Transliteration with Options
+### 9. Advanced: Transliteration with Options
 
 **Problem:** Need to control partial matching behavior.
 
@@ -412,7 +485,7 @@ transliterateToAmharic('aman', withoutPartial);
 
 ---
 
-### 9. Autocomplete/Suggestions Component
+### 10. Autocomplete/Suggestions Component
 
 **Problem:** Build an autocomplete that suggests names in both scripts.
 
@@ -467,7 +540,7 @@ function NameAutocomplete({ allNames }: { allNames: string[] }) {
 
 ---
 
-### 10. Bulk Name Processing
+### 11. Bulk Name Processing
 
 **Problem:** Process a list of names and normalize them.
 
